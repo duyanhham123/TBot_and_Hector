@@ -159,7 +159,7 @@ int main(int argc, char **argv)
         // get topics
         ros::spinOnce();
 
-        /* // remove this block comment (1/2)
+        
 
         //// IMPLEMENT ////
         
@@ -191,7 +191,39 @@ int main(int argc, char **argv)
             
         }
 
-        */ // remove this block comment (2/2)
+        double dx_hector = pos_goal.x - initial_x;
+        double dy_hector = pos_goal.y - initial_y;
+        double t_avg = sqrt(dx*dx-dy*dy)/average_speed;
+
+        double a_0 = 0, a_1 = 0, a_2 = 0, a_3 = 0;
+        double b_0 = 0, b_1 = 0, b_2 = 0, b_3 = 0;
+        double interpoint_spd = 0.2;
+        double vel_x = 0, vel_y = 0;
+
+        a_0 = inital_x;
+        a_1 = vx;
+        a_2 = (-3/t_avg/t_avg)-(2/t_avg)+(3/t_avg/t_avg)-(1/t_avg);
+        a_3 = (2/t_avg/t_avg/t_avg)+(1/t_avg/t_avg)-(2/t_avg/t_avg/t_avg)+(1/t_avg/t_avg);
+        b_0 = initial_y;
+        b_1 = vy;
+        b_2 = (-3/t_avg/t_avg)-(2/t_avg)+(3/t_avg/t_avg)-(1/t_avg);
+        b_3 = (2/t_avg/t_avg/t_avg)+(1/t_avg/t_avg)-(2/t_avg/t_avg/t_avg)+(1/t_avg/t_avg); 
+
+        std::vector<Position> trajectory = {};
+
+        for (double t = look_ahead; t < t_avg; t += look_ahead)
+        {
+            trajectory.emplace_back(
+                a_0 + a_1*t + a_2*t*t + a_3*t*t*t,
+                b_0 + b_1*t + b_2*t*t + b_3*t*t*t
+            )
+        }
+        
+
+
+
+
+
 
         if (verbose)
             ROS_INFO_STREAM(" HMAIN : " << to_string(state));
