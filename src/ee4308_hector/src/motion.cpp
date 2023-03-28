@@ -33,6 +33,23 @@ cv::Matx22d P_a = cv::Matx22d::ones();
 cv::Matx22d P_z = cv::Matx22d::ones();
 double ua = NaN, ux = NaN, uy = NaN, uz = NaN;
 double qa, qx, qy, qz;
+//Declare F,U,W,Q matrix for EKF prediction
+cv::Matx<2,2,double> F_xk;
+cv::Matx<2,2,double> W_xk;
+cv::Matx<2,1,double> U_xk;
+cv::Matx<2,2,double> F_yk;
+cv::Matx<2,2,double> W_yk;
+cv::Matx<2,1,double> U_yk;
+cv::Matx<2,2,double> F_zk;
+cv::Matx<2,1,double> W_zk;
+cv::Matx<1,1,double> U_zk;
+cv::Matx<2,2,double> F_ak;
+cv::Matx<2,1,double> W_ak;
+cv::Matx<1,1,double> U_ak;
+cv::Matx<2,2,double> Q_x;
+cv::Matx<2,2,double> Q_y;
+cv::Matx<1,1,double> Q_z;
+cv::Matx<1,1,double> Q_a;
 // see https://docs.opencv.org/3.4/de/de1/classcv_1_1Matx.html
 void cbImu(const sensor_msgs::Imu::ConstPtr &msg)
 {
@@ -54,6 +71,38 @@ void cbImu(const sensor_msgs::Imu::ConstPtr &msg)
     uz = msg->linear_acceleration.z;
     
     //// IMPLEMENT IMU ////
+    //Predict x 
+    //Note: A(0) is a
+    F_xk = {1,imu_dt,0,1};
+    W_xk = {-0.5*(imu_dt**2)*cos(A(0)), 0.5*(imu_dt**2)*sin(A(0)), -imu_dt*cos(A(0)), imu_dt*sin(A(0))};
+    U_xk = {ux,uy};
+    Qx = {qx,0,0,qy};
+    X = F_xk*X + W_xk*U_xk;
+    P_x = F_xk*P_x*F_xk.t() + W_xk*Qx*W_xk.t();
+    
+    //Predict y
+    F_yk = {1, imu_dt,0,1};
+    W_yk = {-0.5*(imu_dt**2)*cos(A(0)), -0.5*(imu_dt**2)*sin(A(0)),-imu_dt*cos(A(0)), -imu_dt*sin(A(0))};
+    U_yk = {ux,uy};
+    Qy = {qx,0,0,qy};
+    Y = F_yk*Y + W_yk*U_yk;
+    P_y = F_yk*P_y*F_yk.t() + W_yk*Qy*W_yk.t();
+    
+    //Predict z
+    F_zk = {1,imu_dt,0,1};
+    W_zk = {0.5*(imu_dt**2),imu_dt};
+    U_zk = {uz-G};
+    Qz = {qz};
+    Z = F_zk*Z + W_zk*U_zk;
+    P_z = F_zk*P_z*F_zk.t() + W_zk*Qz*W_zk.t();
+    
+    //Predict a
+    F_ak = {1,0,0,0};
+    W_ak = {imu_dt,1};
+    U_ak = {ua};
+    Qa = {qa};
+    A = F_ak*A + W_ak*U_ak;
+    P_a = F_ak*P_a*F_ak.t() + W_ak*Qa*W_ak.t();
 }
 
 // --------- GPS ----------
