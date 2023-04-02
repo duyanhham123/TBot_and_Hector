@@ -159,7 +159,7 @@ int main(int argc, char **argv)
         // get topics
         ros::spinOnce();
 
-        
+        // remove this block comment (1/2)
 
         //// IMPLEMENT ////
         
@@ -167,13 +167,22 @@ int main(int argc, char **argv)
         {   // Initial State
             // Disable Rotate
             msg_rotate.data = false;
-            pub_rotate.publish(msg_rotate)
+            pub_rotate.publish(msg_rotate);
 
             // Enable Rotate when the height is reached
+            if (z == 2.0)
+            {
+                msg_rotate.data = true;
+                state = TURTLE;
+            }
+
         }
         else if (state == TURTLE)
         {   // flying to turtlebot
-            
+            double distance = dist_euc(x,y,turtle_x,turtle_y);
+
+            if (distance <= close_enough)
+                state = GOAL;
         }
         else if (state == START)
         {   // flying to hector's starting position
@@ -184,12 +193,18 @@ int main(int argc, char **argv)
         }
         else if (state == GOAL)
         {   // flying to goal
+            double distance = dist_euc(x,y,goal_x,goal_y);
+
+            if (distance <= close_enough)
+                state = START;
             
         }
         else if (state == LAND)
         {   // reached hector's starting position, and trying to land. Can disable rotation.
-            
+            msg_rotate.data = false;
         }
+
+        // remove this block comment (2/2)
 
         double dx_hector = pos_goal.x - initial_x;
         double dy_hector = pos_goal.y - initial_y;
