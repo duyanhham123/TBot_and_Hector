@@ -108,29 +108,65 @@ void cbImu(const sensor_msgs::Imu::ConstPtr &msg)
 // --------- GPS ----------
 // https://docs.ros.org/en/api/sensor_msgs/html/msg/NavSatFix.html
 cv::Matx31d GPS = {NaN, NaN, NaN};
+cv::Matx31d initial_ECEF = {NaN, NaN, NaN};
 cv::Matx31d initial_pos = {NaN, NaN, NaN}; // written below in main. no further action needed.
 const double DEG2RAD = M_PI / 180;
 const double RAD_POLAR = 6356752.3;
 const double RAD_EQUATOR = 6378137;
+const double e = 1-(pow(RAD_POLAR,2)/pow(RAD_EQUATOR,2));
+cv::Matx31d ECEF_GPS;
+cv::Matx12d H = {1,0};
+cv::Matx33d ROT_NED;
+cv::Matx33d ROT_GAZ = {1,0,0,0,-1,0,0,0,-1};
+cv::Matx31d NED;
+cv::Matx21d K_x;
+cv::Matx21d K_y;
+cv::Matx21d K_z;
 double r_gps_x, r_gps_y, r_gps_z;
 void cbGps(const sensor_msgs::NavSatFix::ConstPtr &msg)
 {
     if (!ready)
         return;
 
-    /*
-    //// IMPLEMENT GPS /////
-    double lat = msg->latitude;
-    double lon = msg->longitude;
-    double alt = msg->altitude;
     
+    //// IMPLEMENT GPS /////
+    double lat = (msg->latitude)*DEG2RAD;
+    double lon = (msg->longitude)*DEG2RAD;
+    double alt = msg->altitude;
+
+    double vert_r_curv = RAD_EQUATOR/pow((1-(pow(e,2)*pow(sin(lat),2))),0.5);
+    ECEF_GPS = {(vert_r_curv+alt)*cos(lat)*cos(lon),(vert_r_curv+alt)*cos(lat)*sin(lon),((pow(RAD_POLAR,2)/pow(RAD_EQUATOR,2))*vert_r_curv+alt)*sin(lat)};
+    //NEED Input for initial ECEF
+    ROT_NED = {
+        -sin(lat)*cos(lon), -sin(lon), -cos(lat)*cos(lon),
+        -sin(lat)*sin(lon), cos(lon), -cos(lat)*sin(lon),
+        cos(lat), 0, -sin(lat)
+        };
+    
+    NED = (ROT_NED.t())*(ECEF_GPS-initial_ECEF);
+    GPS = (ROT_GAZ*NED)+initial_pos;
+
+    //X-correction
+    K_x = P_x*H.t()*(H*P_x*H.t()+r_gps_y);
+    X = X+K_x*(NED(0)-X(0));
+    P_x = P_x - K_x*H*P_x;
+    //Y-Correction
+    K_y = P_y*H.t()*((H*P_y*H.t())+r_gps_y);
+    Y = Y+K_y*(NED(1)-Y(0));
+    P_y = P_y - K_y*H*P_y;
+    //Z-correction
+    K_z = P_z*H.t()*((H*P_z*H.t())+r_gps_z);
+    Z = Y+K_z*(NED(2)-Z(0));
+    P_z = P_z - K_z*H*P_z;
+
+
     // for initial message -- you may need this:
     if (std::isnan(initial_ECEF(0)))
     {   // calculates initial ECEF and returns
-        initial_ECEF = ECEF;
-        return;
+        initial_ECEF = ECEF_GPS;
+        ROS_INFO_STREAM('Initial ECEF ='<<initial_ECEF);
     }
-    */
+    
 }
 
 // --------- Magnetic ----------
