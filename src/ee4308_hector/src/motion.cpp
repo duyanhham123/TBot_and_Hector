@@ -13,6 +13,7 @@
 #include <std_srvs/Empty.h>                          // Service to calrbrate motors
 #include <opencv2/core/core.hpp>
 #include "common.hpp"
+#include <fstream>
 
 #define NaN std::numeric_limits<double>::quiet_NaN()
 
@@ -172,16 +173,45 @@ void cbGps(const sensor_msgs::NavSatFix::ConstPtr &msg)
 // --------- Magnetic ----------
 double a_mgn = NaN;
 double r_mgn_a;
+
+double sum = 0;
+double mean;
+double total_var = 0;
+double var = 0;
+double Y_mgn;
+cv::Matx<1,2,double> H_mgn;
+double V_mgn;
+double R_mgn;
+
+cv::Matx<1,2,double> H_mgn;
 void cbMagnet(const geometry_msgs::Vector3Stamped::ConstPtr &msg)
 {
     if (!ready)
         return;
     
-    /*
+    //Fill in the estimated value of r_mgn_a
+    //r_mgn_a = 
     //// IMPLEMENT GPS ////
     double mx = msg->vector.x;
     double my = msg->vector.y;
-    */
+    
+    a_mgn = atan2(-my,mx);//Not 100% sure abt this
+    Y_mgn = a_mgn;
+    
+    std::ofstream data_file;
+    data_file.open("file.xslx");
+    data_file << a_mgn << std::endl;
+    	
+    H_mgn = {1,0};
+    V_mgn = 1;
+    R_mgn = r_mgn_a; 
+    
+    //Estimate yaw
+    K_a = P_a * H_mgn.t()*(H_mgn*P_a*H_mgn.t() + R_mgn);
+    A = A + K_a*(a_mgn - A(0));
+    P_a = P_a - K_a*H*P_a;   
+    
+    data_file.close();
 }
 
 // --------- Baro ----------
