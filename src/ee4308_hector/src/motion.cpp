@@ -229,7 +229,7 @@ void cbBaro(const hector_uav_msgs::Altimeter::ConstPtr &msg)
     
     std::ofstream data_file;
     data_file.open("file_bar.xslx");
-    data_file << a_mgn << std::endl;
+    data_file << z_bar << std::endl;
     
     V_bar = 1;
     R_bar = r_bar_z;
@@ -250,10 +250,20 @@ void cbSonar(const sensor_msgs::Range::ConstPtr &msg)
     if (!ready)
         return;
 
-    /*
     //// IMPLEMENT SONAR ////
     z_snr = msg->range;
-    */
+    y_snr = z_snr;
+    h_snr = {1 0};
+
+
+    std::ofstream data_file;
+    data_file.open("file_son.xslx");
+    data_file << z_snr << std::endl;
+    
+    v_snr = 1;
+    r_snr = r_snr_z;
+
+    data_file.close();
 }
 
 // --------- GROUND TRUTH ----------
