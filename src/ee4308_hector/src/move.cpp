@@ -53,6 +53,12 @@ void cbRotate(const std_msgs::Bool::ConstPtr &msg)
     rotate = msg->data;
 }
 
+double sat(double x, double x_s) {	
+    if (x > x_s) return x_s;	
+    else if (x < (-x_s)) return -x_s;	
+    else return x;	
+}
+
 int main(int argc, char **argv)
 {
     ros::init(argc, argv, "turtle_move");
@@ -129,7 +135,16 @@ int main(int argc, char **argv)
     double cmd_lin_vel_x, cmd_lin_vel_y, cmd_lin_vel_z, cmd_lin_vel_a;
     double dt;
     double prev_time = ros::Time::now().toSec();
-
+    double error_x = 0;	
+    double error_x_prev = 0;	
+    double error_x_accum = 0;	
+    double error_y = 0;	
+    double error_y_prev = 0;	
+    double error_y_accum = 0;	
+    double error_z = 0;	
+    double error_z_prev = 0;	
+    double error_z_accum = 0;
+    
     // main loop
     while (ros::ok() && nh.param("run", true))
     {
@@ -149,7 +164,62 @@ int main(int argc, char **argv)
         pub_cmd.publish(msg_cmd);
 
         //// IMPLEMENT /////
-        
+        double p_x = 0;	
+        double i_x = 0;	
+        double d_x = 0;	
+        double u_x = 0;	
+        double acc_x = 0;	
+        double acc_x_sat = 0;	
+        	
+        error_x_prev = error_x;	
+        error_x = target_x-x;	
+        p_x = Kp_lin * error_x;	
+        error_x_accum += error_x * dt;	
+        i_x = Ki_lin * error_x_accum;	
+        d_x = Kd_lin * (error_x - error_x_prev) / dt;	
+        u_x = p_x + i_x + d_x;	
+        acc_x = (u_x - cmd_lin_vel_x) / dt;	
+        cmd_lin_vel_x = cmd_lin_vel_x + acc_x * dt;	
+        	
+        double p_y = 0;	
+        double i_y = 0;	
+        double d_y = 0;	
+        double u_y = 0;	
+        double acc_y = 0;	
+        double acc_y_sat = 0;	
+        	
+        error_y_prev = error_y;	
+        error_y = target_y-y;	
+        p_y = Kp_lin * error_y;	
+        error_y_accum += error_y * dt;	
+        i_y = Ki_lin * error_y_accum;	
+        d_y = Kd_lin * (error_y - error_y_prev) / dt;	
+        u_y = p_y + i_y + d_y;	
+        acc_y = (u_y - cmd_lin_vel_y) / dt;	
+        cmd_lin_vel_y = cmd_lin_vel_y + acc_y * dt;	
+        // Saturate horizontal speed	
+        double xy_vel = sqrt(cmd_lin_vel_x*cmd_lin_vel_x +cmd_lin_vel_y*cmd_lin_vel_y);	
+        if (xy_vel > max_lin_vel) {	
+            cmd_lin_vel_x = cmd_lin_vel_x * max_lin_vel / xy_vel;	
+            cmd_lin_vel_y = cmd_lin_vel_y * max_lin_vel / xy_vel;	
+        }	
+        	
+        double p_z = 0;	
+        double i_z = 0;	
+        double d_z = 0;	
+        double u_z = 0;	
+        double acc_z = 0;	
+        double acc_z_sat = 0;	
+        	
+        error_z_prev = error_z;	
+        error_z = target_z-z;	
+        p_z = Kp_z * error_z;	
+        error_z_accum += error_z * dt;	
+        i_z = Ki_z * error_z_accum;	
+        d_z = Kd_z * (error_z - error_z_prev) / dt;	
+        u_z = p_z + i_z + d_z;	
+        acc_z = (u_z - cmd_lin_vel_z) / dt;	
+        cmd_lin_vel_z = sat(cmd_lin_vel_z + acc_z * dt, max_z_vel);
         // verbose
         if (verbose)
         {
