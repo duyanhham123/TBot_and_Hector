@@ -199,7 +199,7 @@ void cbMagnet(const geometry_msgs::Vector3Stamped::ConstPtr &msg)
     Y_mgn = a_mgn;
     
     std::ofstream data_file;
-    data_file.open("file.xslx");
+    data_file.open("file_mag.xslx");
     data_file << a_mgn << std::endl;
     	
     H_mgn = {1,0};
@@ -208,8 +208,8 @@ void cbMagnet(const geometry_msgs::Vector3Stamped::ConstPtr &msg)
     
     //Estimate yaw
     K_a = P_a * H_mgn.t()*(H_mgn*P_a*H_mgn.t() + R_mgn);
-    A = A + K_a*(a_mgn - A(0));
-    P_a = P_a - K_a*H*P_a;   
+    A = A + K_a*(Y_mgn - A(0));
+    P_a = P_a - K_a*H_mgn*P_a;   
     
     data_file.close();
 }
@@ -222,10 +222,24 @@ void cbBaro(const hector_uav_msgs::Altimeter::ConstPtr &msg)
     if (!ready)
         return;
 
-    /*
     //// IMPLEMENT BARO ////
-     z_bar = msg->altitude;
-    */
+    z_bar = msg->altitude;
+    Y_bar = z_bar;
+    H_bar = {1,0};
+    
+    std::ofstream data_file;
+    data_file.open("file_bar.xslx");
+    data_file << a_mgn << std::endl;
+    
+    V_bar = 1;
+    R_bar = r_bar_z;
+    
+    //Estimate z
+    K_z = P_z * H_bar.t()*(H_bar*P_z*H_bar.t() + R_bar);
+    Z = Z + K_z*(Y_bar - Z(0));
+    P_z = P_z - K_z*H_bar*P_z;
+    
+    data_file.close();
 }
 
 // --------- Sonar ----------
